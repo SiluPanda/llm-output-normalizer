@@ -18,3 +18,11 @@ export type {
 } from './types';
 export type { PipelineStep, PipelineRunResult } from './pipeline/index';
 export { runPipeline } from './pipeline/index';
+export {
+  normalize,
+  extractJSON,
+  extractCode,
+  extractAll,
+  detect,
+  createNormalizer,
+} from './normalizer';
