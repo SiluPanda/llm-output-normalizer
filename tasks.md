@@ -2,13 +2,13 @@
 
 ## Phase 1: Project Scaffolding & Types
 
-- [ ] **Install dev dependencies** — Install `typescript`, `vitest`, `eslint`, and `@types/node` as dev dependencies. Verify `npm run build`, `npm run test`, and `npm run lint` scripts work (even if they produce empty output). | Status: not_done
+- [x] **Install dev dependencies** — Install `typescript`, `vitest`, `eslint`, and `@types/node` as dev dependencies. Verify `npm run build`, `npm run test`, and `npm run lint` scripts work (even if they produce empty output). | Status: done
 
-- [ ] **Define all TypeScript types in `src/types.ts`** — Create the types file with all interfaces and type aliases from the spec: `ExtractionMode`, `JsonStrategy`, `PreambleSensitivity`, `RepairLevel`, `NormalizeOptions`, `StepConfig`, `ExtractJSONOptions`, `NormalizeResult`, `CodeBlock`, `NormalizeMeta` (including the `errors` array field), `ExtractAllResult`, `DetectResult`, `Normalizer`, `BufferedNormalizerOptions`, `BufferedNormalizer`. Ensure all fields, optionality markers, and JSDoc comments match the spec exactly. | Status: not_done
+- [x] **Define all TypeScript types in `src/types.ts`** — Create the types file with all interfaces and type aliases from the spec: `ExtractionMode`, `JsonStrategy`, `PreambleSensitivity`, `RepairLevel`, `NormalizeOptions`, `StepConfig`, `ExtractJSONOptions`, `NormalizeResult`, `CodeBlock`, `NormalizeMeta` (including the `errors` array field), `ExtractAllResult`, `DetectResult`, `Normalizer`, `BufferedNormalizerOptions`, `BufferedNormalizer`. Ensure all fields, optionality markers, and JSDoc comments match the spec exactly. | Status: done
 
-- [ ] **Implement pipeline step interface and runner in `src/pipeline/index.ts`** — Define the `PipelineStep` interface with fields: `id` (kebab-case string), `order` (integer), `predicate` (fast applicability check), `transform` (the transformation function), and `enabled` (boolean toggle). Implement the pipeline runner function that accepts an array of steps and input text, runs steps sequentially in order, skips disabled steps and steps whose predicate returns false, records which steps were applied in metadata, and handles per-step timeout (100ms abort with graceful fallback). | Status: not_done
+- [x] **Implement pipeline step interface and runner in `src/pipeline/index.ts`** — Define the `PipelineStep` interface with fields: `id` (kebab-case string), `order` (integer), `predicate` (fast applicability check), `transform` (the transformation function), and `enabled` (boolean toggle). Implement the pipeline runner function that accepts an array of steps and input text, runs steps sequentially in order, skips disabled steps and steps whose predicate returns false, records which steps were applied in metadata, and handles per-step timeout (100ms abort with graceful fallback). | Status: done
 
-- [ ] **Set up `src/index.ts` as the public API barrel export** — Export all public functions (`normalize`, `extractJSON`, `extractCode`, `extractAll`, `detect`, `createNormalizer`, `createBufferedNormalizer`), all public types, and the `presets` object. This file should re-export from the individual module files. | Status: not_done
+- [x] **Set up `src/index.ts` as the public API barrel export** — Export all public functions (`normalize`, `extractJSON`, `extractCode`, `extractAll`, `detect`, `createNormalizer`, `createBufferedNormalizer`), all public types, and the `presets` object. This file should re-export from the individual module files. | Status: done
 
 ---
 
@@ -16,13 +16,13 @@
 
 ### Step 1: Unicode Normalization
 
-- [ ] **Implement `src/pipeline/unicode-normalize.ts`** — Implement the unicode-normalize step (order 1). Must: strip UTF-8 BOM (U+FEFF) from the start of the string; replace unusual Unicode whitespace characters (U+00A0, U+2003, U+2002, U+2009, U+200B, U+200C, U+200D, U+3000) with ASCII space (U+0020); remove Unicode control characters (U+0000-U+001F) except tab (U+0009), newline (U+000A), and carriage return (U+000D); normalize Unicode to NFC form. Predicate always returns true. This step cannot be disabled. | Status: not_done
+- [x] **Implement `src/pipeline/unicode-normalize.ts`** — Implement the unicode-normalize step (order 1). Must: strip UTF-8 BOM (U+FEFF) from the start of the string; replace unusual Unicode whitespace characters (U+00A0, U+2003, U+2002, U+2009, U+200B, U+200C, U+200D, U+3000) with ASCII space (U+0020); remove Unicode control characters (U+0000-U+001F) except tab (U+0009), newline (U+000A), and carriage return (U+000D); normalize Unicode to NFC form. Predicate always returns true. This step cannot be disabled. | Status: done
 
-- [ ] **Write tests for unicode normalization in `src/__tests__/pipeline/unicode.test.ts`** — Test BOM removal, non-breaking space replacement, zero-width character removal, control character removal (except tab/newline/CR), NFC normalization, and passthrough of clean input. | Status: not_done
+- [x] **Write tests for unicode normalization in `src/__tests__/pipeline/unicode.test.ts`** — Test BOM removal, non-breaking space replacement, zero-width character removal, control character removal (except tab/newline/CR), NFC normalization, and passthrough of clean input. | Status: done
 
 ### Step 2: Thinking Block Removal
 
-- [ ] **Create thinking tag patterns in `src/patterns/thinking-tags.ts`** — Define regex patterns for all documented thinking block tags: `<thinking>`, `<antThinking>`, `<reflection>`, `<scratchpad>`, `<reasoning>`, `<inner_monologue>`, `<thought>`. Patterns must be case-insensitive and match opening/closing tag pairs. | Status: not_done
+- [x] **Create thinking tag patterns in `src/patterns/thinking-tags.ts`** — Define regex patterns for all documented thinking block tags: `<thinking>`, `<antThinking>`, `<reflection>`, `<scratchpad>`, `<reasoning>`, `<inner_monologue>`, `<thought>`. Patterns must be case-insensitive and match opening/closing tag pairs. | Status: done
 
 - [ ] **Implement `src/pipeline/thinking-block-removal.ts`** — Implement the thinking-block-removal step (order 2). Must match outermost tag pairs, remove everything between tags including the tags themselves, handle multiple thinking blocks in a single response, handle nested thinking blocks by matching outermost pair, and support custom tags via `customTags` step config option. Predicate checks for presence of any opening thinking tag using a fast regex scan. | Status: not_done
 
