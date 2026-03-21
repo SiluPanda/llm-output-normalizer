@@ -65,6 +65,113 @@ import type {
 } from 'llm-output-normalizer';
 ```
 
+### High-Level API
+
+#### `normalize(input, options?): NormalizeResult`
+
+Runs the full normalization pipeline on raw LLM output. Returns a `NormalizeResult` containing:
+- `text` — the cleaned output text
+- `json` — parsed JSON value (if JSON was detected)
+- `code` — extracted code block (if a code fence was detected)
+- `type` — detected content type: `'json' | 'code' | 'text' | 'markdown'`
+- `confidence` — detection confidence (0.0–1.0)
+- `meta` — detailed metadata about what the pipeline did
+
+```ts
+import { normalize } from 'llm-output-normalizer';
+
+const result = normalize(rawOutput, {
+  mode: 'json',
+  jsonStrategy: 'largest',
+  repair: 'aggressive',
+  preambleSensitivity: 'strict',
+  steps: {
+    'thinking-block-removal': true,
+    'preamble-strip': { enabled: true },
+    'json-repair': false,
+  },
+});
+```
+
+#### `extractJSON<T>(input, options?): T | undefined`
+
+Extract and parse the first valid JSON value from raw LLM output. Returns the parsed value or `undefined` if no valid JSON is found. Repairs common JSON issues (trailing commas, unclosed brackets) before parsing.
+
+```ts
+import { extractJSON } from 'llm-output-normalizer';
+
+const data = extractJSON<{ name: string }>(`
+<thinking>Let me think...</thinking>
+\`\`\`json
+{"name": "Alice",}
+\`\`\`
+`);
+// => { name: 'Alice' }
+
+// Get the raw JSON string instead of parsing
+const raw = extractJSON('{"a": 1}', { raw: true }); // => '{"a": 1}'
+```
+
+#### `extractCode(input): CodeBlock | undefined`
+
+Find and return the first markdown fence code block. Returns `{ code, language?, index? }` or `undefined`.
+
+```ts
+import { extractCode } from 'llm-output-normalizer';
+
+const block = extractCode('```typescript\nconst x = 1;\n```');
+// => { code: 'const x = 1;', language: 'typescript', index: 0 }
+```
+
+#### `extractAll(input): ExtractAllResult`
+
+Extract all JSON values and code blocks in a single pass. Returns `{ json, code, text, meta }`.
+
+```ts
+import { extractAll } from 'llm-output-normalizer';
+
+const result = extractAll(response);
+result.json  // unknown[]  — all parsed JSON values
+result.code  // CodeBlock[] — all code blocks
+result.text  // string     — text with fences stripped
+```
+
+#### `detect(input): DetectResult`
+
+Detect the content type and structural features without transforming the text.
+
+```ts
+import { detect } from 'llm-output-normalizer';
+
+const info = detect(rawOutput);
+info.type              // 'json' | 'code' | 'text' | 'markdown'
+info.confidence        // 0.0–1.0
+info.hasPreamble       // boolean
+info.hasPostamble      // boolean
+info.hasFences         // boolean
+info.fenceCount        // number
+info.fenceLanguages    // string[]
+info.hasThinkingBlocks // boolean
+info.hasXmlArtifacts   // boolean
+info.jsonCandidateCount // number
+```
+
+#### `createNormalizer(options?): Normalizer`
+
+Create a reusable normalizer instance bound to a specific configuration.
+
+```ts
+import { createNormalizer } from 'llm-output-normalizer';
+
+const n = createNormalizer({ mode: 'json', repair: 'conservative' });
+
+n.normalize(rawOutput);
+n.extractJSON(rawOutput);
+n.extractCode(rawOutput);
+n.extractAll(rawOutput);
+n.detect(rawOutput);
+```
+
 ### Pipeline Runner
 
 The pipeline runner executes an ordered sequence of transformation steps:
@@ -104,28 +211,28 @@ Steps are sorted by `order` before execution. If a step's `transform` throws, it
 
 The normalization pipeline processes text through these steps in order:
 
-| Order | Step | Status | Description |
-|-------|------|--------|-------------|
-| 1 | `unicode-normalize` | Done | Strip BOM, normalize whitespace, remove control chars, NFC normalize |
-| 2 | `thinking-block-removal` | WIP | Remove `<thinking>`, `<antThinking>`, `<reflection>`, etc. |
-| 3 | `xml-artifact-unwrap` | Planned | Unwrap `<artifact>`, `<result>`, `<answer>`, etc. |
-| 4 | `preamble-strip` | Planned | Remove "Sure! Here's..." and similar preamble text |
-| 5 | `postamble-strip` | Planned | Remove "Let me know if..." and similar postamble text |
-| 6 | `markdown-fence-extract` | Planned | Extract content from triple-backtick and tilde fences |
-| 7 | `json-extract` | Planned | Find and parse JSON using bracket-matching state machine |
-| 8 | `json-repair` | Planned | Fix trailing commas, single quotes, unquoted keys, truncation |
-| 9 | `whitespace-cleanup` | Planned | Trim, collapse blank lines, normalize line endings |
+| Order | Step | Description |
+|-------|------|-------------|
+| 1 | `unicode-normalize` | Strip BOM, normalize whitespace chars to ASCII space, remove control chars, NFC normalize |
+| 2 | `thinking-block-removal` | Remove `<thinking>`, `<antThinking>`, `<reflection>`, `<scratchpad>`, `<reasoning>`, `<inner_monologue>`, `<thought>` blocks |
+| 3 | `xml-artifact-unwrap` | Unwrap `<antArtifact ...>content</antArtifact>` and `<artifact>` tags, keeping inner content |
+| 4 | `preamble-strip` | Remove leading lines matching common LLM preamble patterns ("Sure!", "Here is", "Of course", etc.) |
+| 5 | `postamble-strip` | Remove trailing lines matching common LLM postamble patterns ("I hope this helps", "Let me know if", etc.) |
+| 6 | `markdown-fence-extract` | When exactly one fence block is present, extract its content and strip the fence markers |
+| 7 | `json-extract` | Find the first/best valid JSON object or array using whole-text parse, fence extraction, or bracket-matching |
+| 8 | `json-repair` | Conservative JSON repair: remove trailing commas, close unclosed strings and brackets |
+| 9 | `whitespace-cleanup` | Collapse 3+ consecutive newlines to 2, collapse 2+ spaces to 1 (outside code blocks), trim |
 
 ## Extraction Modes
 
 The `normalize()` function supports several extraction modes via the `mode` option:
 
-- **`auto`** (default) -- Runs full pipeline, detects content type automatically
-- **`json`** -- Optimized for JSON extraction with repair
-- **`code`** -- Extracts code blocks from markdown fences
-- **`text`** -- Strips all structural elements, returns clean text
-- **`all`** -- Extracts all JSON values and code blocks
-- **`markdown`** -- Preserves markdown structure, strips only noise
+- **`auto`** (default) — Runs full pipeline, detects content type automatically
+- **`json`** — Optimized for JSON extraction with repair
+- **`code`** — Extracts code blocks from markdown fences
+- **`text`** — Strips all structural elements, returns clean text
+- **`all`** — Extracts all JSON values and code blocks
+- **`markdown`** — Preserves markdown structure, strips only noise
 
 ## Configuration
 
@@ -134,12 +241,12 @@ import { normalize } from 'llm-output-normalizer';
 
 const result = normalize(rawOutput, {
   mode: 'json',
-  jsonStrategy: 'largest',    // 'first' | 'largest' | 'all'
-  repair: 'aggressive',       // 'conservative' | 'moderate' | 'aggressive'
+  jsonStrategy: 'largest',       // 'first' | 'largest' | 'all'
+  repair: 'aggressive',          // 'conservative' | 'moderate' | 'aggressive'
   preambleSensitivity: 'strict', // 'strict' | 'normal' | 'aggressive'
   steps: {
     'thinking-block-removal': true,
-    'preamble-strip': { enabled: true, sensitivity: 'aggressive' },
+    'preamble-strip': { enabled: true },
     'json-repair': false,
   },
 });
