@@ -3,6 +3,7 @@
 Strip markdown fences, remove thinking blocks, and extract clean structured data from raw LLM output.
 
 [![npm version](https://img.shields.io/npm/v/llm-output-normalizer.svg)](https://www.npmjs.com/package/llm-output-normalizer)
+[![npm downloads](https://img.shields.io/npm/dt/llm-output-normalizer.svg)](https://www.npmjs.com/package/llm-output-normalizer)
 [![license](https://img.shields.io/npm/l/llm-output-normalizer.svg)](https://github.com/SiluPanda/llm-output-normalizer/blob/master/LICENSE)
 [![node](https://img.shields.io/node/v/llm-output-normalizer.svg)](https://nodejs.org)
 
