@@ -138,4 +138,16 @@ describe('jsonRepairStep', () => {
     const repaired = repairJson(input);
     expect(repaired).toBe(input);
   });
+
+  it('repairs incomplete key-value pair by inserting null', () => {
+    const result = repairJson('{"key": ');
+    expect(() => JSON.parse(result)).not.toThrow();
+    expect(JSON.parse(result)).toEqual({ key: null });
+  });
+
+  it('repairs trailing comma after bracket closure', () => {
+    const result = repairJson('{"a": 1, ');
+    expect(() => JSON.parse(result)).not.toThrow();
+    expect(JSON.parse(result)).toEqual({ a: 1 });
+  });
 });
