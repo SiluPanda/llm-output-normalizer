@@ -296,22 +296,24 @@ export function extractAll(input: string): ExtractAllResult {
       } catch { /* skip */ }
     }
   }
-  // Also try bracket-matching the full output
-  const rawJson = extractJsonString(output);
-  if (rawJson) {
-    try {
-      const parsed = JSON.parse(rawJson);
-      // Avoid duplicates — only add if not already in jsonValues from fences
-      if (jsonValues.length === 0) jsonValues.push(parsed);
-    } catch { /* skip */ }
-  }
-
-  // Strip fence markers from returned text
+  // Strip fence markers for prose text and prose JSON extraction
   let text = output;
   if (code.length > 0) {
     // Replace all fences with their content for a cleaner text view
     const fenceGlobal = /(`{3,}|~{3,})[^\n]*\n([\s\S]*?)\n?\1\s*/gm;
-    text = output.replace(fenceGlobal, '$2\n').trim();
+    text = output.replace(fenceGlobal, '').trim();
+  }
+
+  // Also try bracket-matching the prose (fences stripped) for additional JSON
+  const rawJson = extractJsonString(text);
+  if (rawJson) {
+    try {
+      const parsed = JSON.parse(rawJson);
+      // Avoid duplicates by comparing serialized form
+      const serialized = JSON.stringify(parsed);
+      const isDuplicate = jsonValues.some(v => JSON.stringify(v) === serialized);
+      if (!isDuplicate) jsonValues.push(parsed);
+    } catch { /* skip */ }
   }
 
   return { json: jsonValues, code, text, meta };

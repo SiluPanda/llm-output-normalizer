@@ -178,6 +178,14 @@ describe('extractAll()', () => {
     expect(result.json).toEqual([]);
     expect(result.code).toEqual([]);
   });
+
+  it('extracts JSON from both fences and prose', () => {
+    const input = '```json\n{"first": 1}\n```\n\nThen: {"second": 2}';
+    const result = extractAll(input);
+    expect(result.json).toHaveLength(2);
+    expect(result.json).toContainEqual({ first: 1 });
+    expect(result.json).toContainEqual({ second: 2 });
+  });
 });
 
 // ── detect() ──────────────────────────────────────────────────────────────────

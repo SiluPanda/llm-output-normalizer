@@ -45,6 +45,9 @@ export function repairJson(text: string): string {
     s = s + '"';
   }
 
+  // Step 2.5: Handle incomplete key-value pairs (e.g., {"key": )
+  s = s.replace(/:\s*$/, ': null');
+
   // Step 3: Close unclosed brackets/braces
   const stack: string[] = [];
   inString = false;
@@ -66,6 +69,9 @@ export function repairJson(text: string): string {
   for (let i = stack.length - 1; i >= 0; i--) {
     s = s + stack[i];
   }
+
+  // Re-run trailing comma cleanup after bracket closure
+  s = s.replace(/,\s*([}\]])/g, '$1');
 
   return s;
 }
